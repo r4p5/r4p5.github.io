@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>PrintHub</title>
+<style>
+  body{margin:0;min-height:100vh;display:grid;place-items:center;font:16px/1.5 system-ui,sans-serif;background:#f8fafc;color:#0f172a}
+  main{max-width:22rem;margin:1rem;padding:1.5rem;background:#fff;border:1px solid #e2e8f0;border-radius:12px;text-align:center}
+  h1{font-size:1.15rem;margin:0 0 .5rem} p{color:#475569;font-size:.9rem;margin:.5rem 0}
+  a.btn{display:block;margin-top:1rem;padding:.75rem;border-radius:8px;background:#0f172a;color:#fff;text-decoration:none;font-weight:600}
+</style>
+</head>
+<body>
+<main id="m"><h1>PrintHub</h1><p>Loading…</p></main>
+<script>
+// Static launcher hosted on GitHub Pages. The print app itself is served by the shop's own
+// computer over plain HTTP on the LAN; an HTTPS page cannot call it (mixed content), so this
+// page only forwards the browser there. The QR carries the LAN address in the #fragment,
+// which browsers never send to GitHub.
+(function () {
+  var m = document.getElementById('m');
+  var seg = location.pathname.split('/').filter(Boolean);
+  var mobile = seg[seg.length - 1] || '';
+  function show(title, text, href) {
+    m.innerHTML = '';
+    var h = document.createElement('h1'); h.textContent = title; m.appendChild(h);
+    var p = document.createElement('p'); p.textContent = text; m.appendChild(p);
+    if (href) { var a = document.createElement('a'); a.className = 'btn'; a.href = href; a.textContent = 'Open shop'; m.appendChild(a); }
+  }
+  if (!/^[6-9]\d{9}$/.test(mobile)) return show('Shop not found', 'Please scan the QR code displayed at the print shop.');
+
+  var hash = new URLSearchParams(location.hash.slice(1));
+  var host = hash.get('h');
+  // Only private LAN addresses: this page must never become an open redirect.
+  var ok = function (h) {
+    var x = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3}):(\d{2,5})$/.exec(h || '');
+    if (!x || x.slice(1, 5).some(function (n) { return +n > 255; }) || +x[5] > 65535) return false;
+    var a = +x[1], b = +x[2];
+    return a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168);
+  };
+  var key = 'printhub:' + mobile;
+  try {
+    if (ok(host)) localStorage.setItem(key, host);
+    else host = localStorage.getItem(key);
+  } catch (e) {}
+  if (!ok(host)) return show('Scan the shop QR code', 'Open this page by scanning the QR code displayed at the print shop.');
+
+  var target = 'http://' + host + '/?shop=' + mobile;
+  show('Connecting to the shop…', 'Make sure your phone is connected to the shop’s Wi-Fi (mobile data will not work).', target);
+  setTimeout(function () { location.replace(target); }, 900);
+})();
+</script>
+</body>
+</html>
